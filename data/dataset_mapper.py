@@ -127,6 +127,7 @@ class DetrDatasetMapper:
             dict: a format that builtin models in detectron2 accept
         """
         if self.is_train and random.random() < self.mosaic_prob:
+            print("Applying Mosaic Augmentation")
             dataset_dict = apply_mosaic_augmentation(
                 dataset_dict,
                 self.dataset,
