@@ -44,6 +44,8 @@ from detectron2.solver.build import maybe_add_gradient_clipping
 import wandb
 from PIL import Image
 
+from detectron2.data import get_detection_dataset_dicts, DatasetFromList
+
 class WandbWriter(EventWriter):
     """
     Write all scalars to a wandb file.
@@ -105,7 +107,12 @@ class WandbWriter(EventWriter):
 class JointTransformerTrainer(DefaultTrainer):
     @classmethod
     def build_train_loader(cls, cfg):
-        return build_detection_train_loader(cfg, mapper=DetrDatasetMapper(cfg, True))
+        dataset_dicts = get_detection_dataset_dicts(cfg.DATASETS.TRAIN)
+        for i, d in enumerate(dataset_dicts):
+            d["_mosaic_idx"] = i
+        dataset = DatasetFromList(dataset_dicts, copy=False)
+        mapper = DetrDatasetMapper(cfg, is_train=True, dataset=dataset)
+        return build_detection_train_loader(cfg, dataset=dataset, mapper=mapper)
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):

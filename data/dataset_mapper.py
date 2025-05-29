@@ -23,6 +23,9 @@ from detectron2.structures import (
     polygons_to_bitmask,
 )
 
+from .tools.mosaic import apply_mosaic_augmentation
+import random
+
 def build_transform_gen(cfg, is_train):
     """
     Create a list of :class:`TransformGen` from config.
@@ -87,7 +90,7 @@ class DetrDatasetMapper:
     4. Prepare image and annotation to Tensors
     """
 
-    def __init__(self, cfg, is_train=True):
+    def __init__(self, cfg, is_train=True, dataset=None):
         if cfg.INPUT.CROP.ENABLED and is_train:
             self.crop_gen = [
                 T.ResizeShortestEdge([400, 500, 600], sample_style="choice"),
@@ -106,6 +109,10 @@ class DetrDatasetMapper:
 
         self.img_format = cfg.INPUT.FORMAT
         self.is_train = is_train
+
+        self.mosaic_prob = 0.5 if is_train else 0.0
+        self.dataset = dataset
+
         self.filter_duplicate_relations = cfg.DATASETS.VISUAL_GENOME.FILTER_DUPLICATE_RELATIONS
         self.max_num_rels = cfg.DATASETS.VISUAL_GENOME.MAX_NUM_RELATIONS
         self.max_num_objs = cfg.DATASETS.VISUAL_GENOME.MAX_NUM_OBJECTS
@@ -119,8 +126,18 @@ class DetrDatasetMapper:
         Returns:
             dict: a format that builtin models in detectron2 accept
         """
-        dataset_dict = copy.deepcopy(dataset_dict)
-        image = utils.read_image(dataset_dict["file_name"], format=self.img_format)
+        if self.is_train and random.random() < self.mosaic_prob:
+            dataset_dict = apply_mosaic_augmentation(
+                dataset_dict,
+                self.dataset,
+                output_size=320,
+                max_size=800
+            )
+            image = dataset_dict["image_data"]
+        else:
+            dataset_dict = copy.deepcopy(dataset_dict)
+            image = utils.read_image(dataset_dict["file_name"], format=self.img_format)
+
         h, w, _ = image.shape
         if w != dataset_dict['width'] or h != dataset_dict['height']:
             dataset_dict['width'] = w
