@@ -74,6 +74,13 @@ def apply_mosaic_augmentation(first_dict, dataset_list, output_size, max_size):
     final_img_np = np.array(mosaic_img, dtype=np.uint8)
     final_img_bgr = final_img_np[:, :, ::-1] # RGB -> BGR
 
+    def save_mosaic_example(final_img_bgr, save_path="./output/example.png"):
+        import os
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        img_rgb = final_img_bgr[:, :, ::-1]
+        Image.fromarray(img_rgb).save(save_path)
+    save_mosaic_example(final_img_bgr)
+
     return {
         "image_data": final_img_bgr,
         "height": final_img_bgr.shape[0],
